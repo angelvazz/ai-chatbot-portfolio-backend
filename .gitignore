@@ -2,7 +2,16 @@
 .terraform.lock.hcl
 *.tfstate
 *.tfstate.*
+*.tfvars
 
 .env
 .DS_Store
 Thumbs.db
+
+**/node_modules
+
+*.zip
+
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

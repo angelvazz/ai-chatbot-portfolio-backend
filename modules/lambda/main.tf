@@ -1,64 +1,46 @@
-data "archive_file" "chat_handler_zip" {
-  type        = "zip"
-  source_dir  = "${path.module}/../../services/chat-handler"
-  output_path = "${path.module}/chat_handler.zip"
-}
-
-data "archive_file" "process_document_zip" {
-  type        = "zip"
-  source_dir  = "${path.module}/../../services/process-document" 
-  output_path = "${path.module}/process_document.zip"
-}
-
-resource "aws_s3_object" "chat_handler_lambda_code" {
-  bucket = var.lambda_packages_bucket_name
-  key    = "chat-handler/${data.archive_file.chat_handler_zip.output_md5}.zip"
-  source = data.archive_file.chat_handler_zip.output_path
-}
-
-resource "aws_s3_object" "process_document_lambda_code" {
-  bucket = var.lambda_packages_bucket_name
-  key    = "process-document/${data.archive_file.process_document_zip.output_md5}.zip"
-  source = data.archive_file.process_document_zip.output_path
-}
-
-resource "aws_lambda_function" "chat_handler" {
-  function_name    = "${var.project_name}-chat-handler-${var.environment}"
-  s3_bucket        = aws_s3_object.chat_handler_lambda_code.bucket
-  s3_key           = aws_s3_object.chat_handler_lambda_code.key
-  source_code_hash = data.archive_file.chat_handler_zip.output_base64sha256
-  handler          = "index.handler"
-  runtime          = "nodejs20.x"
-  role             = var.iam_role_arn
-  timeout          = 30
-
-  environment {
-    variables = {
-      CHATS_TABLE_NAME         = var.chats_table_name
-      OPENAI_API_KEY_SECRET_ARN = var.openai_api_key_secret_arn
-      PINECONE_API_KEY_SECRET_ARN = var.pinecone_api_key_secret_arn
-      PINECONE_INDEX_NAME      = var.pinecone_index_name
-    }
+resource "null_resource" "ensure_dist" {
+  provisioner "local-exec" {
+    command = "mkdir -p ${path.root}/dist"
   }
 }
 
-resource "aws_lambda_function" "process_document" {
-  function_name    = "${var.project_name}-process-document-${var.environment}"
-  s3_bucket        = aws_s3_object.process_document_lambda_code.bucket
-  s3_key           = aws_s3_object.process_document_lambda_code.key
-  source_code_hash = data.archive_file.process_document_zip.output_base64sha256
-  handler          = "index.handler"
-  runtime          = "nodejs20.x"
+data "archive_file" "zip" {
+  type        = "zip"
+  source_dir  = var.source_path
+  output_path = "${path.root}/dist/${var.function_name}.zip"
+  excludes    = ["**/*.zip"]
+
+  depends_on = [null_resource.ensure_dist]
+}
+
+resource "aws_s3_object" "package" {
+  bucket = var.lambda_packages_s3_bucket
+  key    = "lambda/${var.environment}/${var.function_name}.zip"
+  source = data.archive_file.zip.output_path
+  etag   = data.archive_file.zip.output_md5
+
+  depends_on = [data.archive_file.zip]
+}
+
+resource "aws_lambda_function" "this" {
+  function_name    = "${var.project_name}-${var.function_name}-${var.environment}"
   role             = var.iam_role_arn
-  timeout          = 90
-  memory_size      = 512
+
+  runtime          = var.runtime
+  handler          = var.handler
+  timeout          = var.timeout
+  memory_size      = var.memory_size
+
+  s3_bucket        = aws_s3_object.package.bucket
+  s3_key           = aws_s3_object.package.key
+  source_code_hash = data.archive_file.zip.output_base64sha256
+
+  publish = true
 
   environment {
-    variables = {
-      DOCUMENTS_BUCKET_NAME     = var.documents_bucket_name
-      OPENAI_API_KEY_SECRET_ARN = var.openai_api_key_secret_arn
-      PINECONE_API_KEY_SECRET_ARN = var.pinecone_api_key_secret_arn
-      PINECONE_INDEX_NAME      = var.pinecone_index_name
-    }
+    variables = var.environment_variables
   }
+
+  depends_on = [aws_s3_object.package]
 }
+

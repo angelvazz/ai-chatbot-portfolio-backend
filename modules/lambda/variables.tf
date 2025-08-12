@@ -1,33 +1,59 @@
-variable "project_name" { 
-    type = string 
-}
-variable "environment" { 
-    type = string 
-}
-variable "iam_role_arn" { 
-    type = string 
-}
-variable "chats_table_name" { 
-    type = string 
-}
-variable "documents_bucket_name" { 
-    type = string 
+variable "function_name" {
+  type        = string
+  description = "The name of the lambda function (without project/env prefix)."
 }
 
-variable "openai_api_key_secret_arn" {
-  description = "ARN of the AWS Secrets Manager secret for the OpenAI API Key."
+variable "source_path" {
   type        = string
-}
-variable "pinecone_api_key_secret_arn" {
-  description = "ARN of the AWS Secrets Manager secret for the Pinecone API Key."
-  type        = string
-}
-variable "pinecone_index_name" {
-  description = "The name of the Pinecone index."
-  type        = string
+  description = "Path to the Lambda's source code directory."
 }
 
-variable "lambda_packages_bucket_name" {
-  description = "The name of the S3 bucket where Lambda code is stored."
+variable "project_name" {
   type        = string
+  description = "The name of the project."
+}
+
+variable "environment" {
+  type        = string
+  description = "The deployment environment (e.g., 'dev', 'prod')."
+}
+
+variable "lambda_packages_s3_bucket" {
+  type        = string
+  description = "The name of the S3 bucket to store Lambda packages."
+}
+
+variable "iam_role_arn" {
+  type        = string
+  description = "The ARN of the IAM role for Lambda execution."
+}
+
+variable "handler" {
+  type        = string
+  description = "The function entrypoint in your code."
+  default     = "index.handler"
+}
+
+variable "runtime" {
+  type        = string
+  description = "The runtime environment for the Lambda function."
+  default     = "nodejs20.x"
+}
+
+variable "timeout" {
+  type        = number
+  description = "The amount of time that Lambda allows a function to run before stopping it."
+  default     = 30
+}
+
+variable "memory_size" {
+  type        = number
+  description = "The amount of memory that your function has access to."
+  default     = 256
+}
+
+variable "environment_variables" {
+  type        = map(string)
+  description = "A map of environment variables for the function."
+  default     = {}
 }

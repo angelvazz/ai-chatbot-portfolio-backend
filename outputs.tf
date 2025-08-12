@@ -15,5 +15,5 @@ output "cognito_user_pool_client_id" {
 
 output "documents_bucket_name" {
   description = "The name of the S3 bucket for storing user documents."
-  value       = module.s3_documents_bucket.bucket_name
+  value       = module.s3_buckets.bucket_name 
 }

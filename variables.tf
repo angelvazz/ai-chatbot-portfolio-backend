@@ -15,6 +15,11 @@ variable "aws_region" {
   type        = string
   default     = "us-east-2"
 }
+variable "aws_profile" {
+  description = "The AWS profile."
+  type        = string
+  default     = "default"
+}
 
 variable "openai_api_key_secret_arn" {
   description = "ARN of the AWS Secrets Manager secret for the OpenAI API Key."
